@@ -1,6 +1,6 @@
-# Mikono — Video Script (60-90s cut)
+# Mikono — Video Script (90-100s cut)
 
-Screen recording with voiceover. Keep it under 90 seconds; judges watch many.
+Screen recording with voiceover. Keep it under 100 seconds; judges watch many.
 
 ---
 
@@ -22,11 +22,16 @@ warehouse."
 **[0:55-1:10] Honesty — screen: paste a no-fit offer**
 VO: "And when nothing fits, it says so, instead of faking a match."
 
-**[1:10-1:25] Tech — screen: the SQL file 04_match.sql**
-VO: "Four Cortex functions do it all in SQL: embeddings, cosine ranking,
-classification, and a generated reason on every match. Nothing leaves Snowflake."
+**[1:10-1:20] Bilingual — screen: paste a Swahili offer, submit**
+VO: "It even works across languages — here's an offer in Swahili, matched to the
+same cause. Cortex translates, then matches."
 
-**[1:25-1:30] Close — screen: title**
+**[1:20-1:35] Tech — screen: the SQL file 04_match.sql**
+VO: "Five Cortex functions do it all in SQL: embeddings, cosine ranking,
+classification, translation, and a generated next step on every match. Nothing
+leaves Snowflake."
+
+**[1:35-1:40] Close — screen: title**
 VO: "Mikono. Swahili for hands."
 
 ---

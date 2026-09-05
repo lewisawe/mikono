@@ -55,9 +55,14 @@ SELECT
     rank,
     SNOWFLAKE.CORTEX.COMPLETE(
         'llama3.1-8b',
-        'In one short sentence, explain why this volunteer suits this need. '
-        || 'Need: ' || need_text || ' Volunteer: ' || offer_text
-        || ' Answer in one plain sentence.'
+        'You match volunteers to community causes. In ONE short sentence, name '
+        || 'the concrete first step this volunteer could take to help this cause. '
+        || 'Start with the volunteer''s name and a verb. Be specific and practical, '
+        || 'not generic. '
+        || 'Cause (' || org_name || ', ' || need_location || '): ' || need_text
+        || ' Volunteer (' || volunteer_name || ', ' || offer_location || ', '
+        || 'available ' || availability || '): ' || offer_text
+        || ' Answer in one plain sentence, no preamble.'
     ) AS why_match
 FROM scored
 WHERE rank <= 2;   -- top 2 offers per need

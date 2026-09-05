@@ -36,8 +36,8 @@ def main():
                    SNOWFLAKE.CORTEX.CLASSIFY_TEXT('{esc}', {CATS}):label::STRING AS cat
         )
         SELECT o.volunteer_name, o.category,
-               ROUND(0.8*VECTOR_COSINE_SIMILARITY(q.emb,o.embedding)
-                     +0.2*IFF(q.cat=o.category,1,0),3) AS score
+               ROUND(0.82*VECTOR_COSINE_SIMILARITY(q.emb,o.embedding)
+                     +0.18*IFF(q.cat=o.category,1,0),3) AS score
         FROM OFFERS o, q ORDER BY score DESC LIMIT 3
     """)
     for r in cur.fetchall():
@@ -53,8 +53,27 @@ def main():
                    SNOWFLAKE.CORTEX.CLASSIFY_TEXT('{esc}', {CATS}):label::STRING AS cat
         )
         SELECT n.org_name, n.category,
-               ROUND(0.8*VECTOR_COSINE_SIMILARITY(q.emb,n.embedding)
-                     +0.2*IFF(q.cat=n.category,1,0),3) AS score
+               ROUND(0.82*VECTOR_COSINE_SIMILARITY(q.emb,n.embedding)
+                     +0.18*IFF(q.cat=n.category,1,0),3) AS score
+        FROM NEEDS n, q ORDER BY score DESC LIMIT 3
+    """)
+    for r in cur.fetchall():
+        print("  ", r)
+
+    # A Swahili OFFER — proves the bilingual TRANSLATE path the app uses.
+    sw = "Ninaweza kutengeneza kompyuta na laptop zilizoharibika"
+    cur.execute("SELECT SNOWFLAKE.CORTEX.TRANSLATE(%s, '', 'en')", (sw,))
+    en = cur.fetchone()[0]
+    esc = en.replace("'", "''")
+    print(f"\nSWAHILI OFFER: {sw!r}\n-> Cortex translated: {en!r}\n-> top causes:")
+    cur.execute(f"""
+        WITH q AS (
+            SELECT SNOWFLAKE.CORTEX.EMBED_TEXT_768('{EMBED_MODEL}', '{esc}') AS emb,
+                   SNOWFLAKE.CORTEX.CLASSIFY_TEXT('{esc}', {CATS}):label::STRING AS cat
+        )
+        SELECT n.org_name, n.category,
+               ROUND(0.82*VECTOR_COSINE_SIMILARITY(q.emb,n.embedding)
+                     +0.18*IFF(q.cat=n.category,1,0),3) AS score
         FROM NEEDS n, q ORDER BY score DESC LIMIT 3
     """)
     for r in cur.fetchall():

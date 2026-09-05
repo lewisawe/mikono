@@ -16,7 +16,7 @@ never phrased the same way.
 That last part is why keyword search fails. A school writes *"the computer lab
 machines will not switch on."* A volunteer writes *"I fix broken laptops."* Those
 two sentences share **zero words**. A `LIKE '%...%'` search finds nothing.
-Mikono's semantic match scores them **0.75** and puts them together.
+Mikono's semantic match scores them **0.73** and puts them together.
 
 "Mikono" is Swahili for *hands*. The whole idea is offering a hand, not a wallet.
 
@@ -29,6 +29,10 @@ Three things it does:
   volunteers back instantly, matched on meaning.
 - **"I can help."** A volunteer types what they can offer and sees the causes
   that fit, with an honest low score when nothing really matches.
+- **Bilingual by default.** Type a need or offer in Swahili and Cortex
+  `TRANSLATE` normalises it to English before matching, so *"Ninaweza
+  kutengeneza kompyuta"* finds the same broken-computers cause as *"I fix
+  computers"*. Generosity here is bilingual; the matching has to be too.
 
 ## Demo
 
@@ -42,11 +46,11 @@ keywords with the need:
 
 | Cause | What they wrote | Matched volunteer | Score |
 |-------|-----------------|-------------------|-------|
-| Uhuru Primary School | "computer lab machines will not switch on" | Amina — *"I fix broken laptops"* | 0.70 |
-| Furaha Women's Group | "savings records are a mess, need someone who understands money" | Brian — accountant | 0.80 |
-| Harvest Food Bank | "struggle to collect and deliver without transport" | Hassan — *"I drive a pickup"* | 0.79 |
-| Bookmark Literacy Trust | "books in English, families read Swahili" | Grace — translator | 0.76 |
-| Coastal Health Outreach | "someone medical for simple screenings" | Esther — nurse | 0.83 |
+| Uhuru Primary School | "computer lab machines will not switch on" | Amina — *"I fix broken laptops"* | 0.73 |
+| Harvest Food Bank | "struggle to collect and deliver without transport" | Hassan — *"I drive a pickup"* | 0.82 |
+| Coastal Health Outreach | "someone medical for simple screenings" | Esther — nurse | 0.70 |
+| Furaha Women's Group | "savings records are a mess, need someone who understands money" | Brian — accountant | 0.68 |
+| Bookmark Literacy Trust | "books in English, families read Swahili" | Grace — translator | 0.64 |
 
 <!--
   SCREENSHOTS: upload each with the DEV editor image button, then paste the URL
@@ -70,6 +74,8 @@ The pieces:
 - `sql/03_embed.sql`: enriches every row with `EMBED_TEXT_768` and
   `CLASSIFY_TEXT`.
 - `sql/04_match.sql`: the blended match view.
+- `sql/05_readonly_role.sql`: a locked-down read-only role + user for the
+  public demo, capped by a resource monitor.
 - `app/run_pipeline.py`: runs the whole pipeline against a Snowflake account in
   one command. `app/deploy_streamlit.py` deploys the app the same way.
 - `app/verify_matching.py`: a pure-Python mirror of the ranking, no Snowflake
@@ -78,34 +84,42 @@ The pieces:
 ## How I Built It
 
 **Snowflake Cortex is the engine, not a database bolted on.** The intelligence
-is the matching, and it runs entirely in SQL using four Cortex capabilities:
+is the matching, and it runs entirely in SQL using five Cortex capabilities:
 
 - `EMBED_TEXT_768` turns each free-text offer and need into a 768-dim semantic
   vector.
 - `VECTOR_COSINE_SIMILARITY` ranks offers against needs by meaning.
 - `CLASSIFY_TEXT` labels each side into a help category (tech repair, healthcare,
   translation, and so on).
-- `COMPLETE` (`llama3.1-8b`) writes the one-line "why they fit" explanation for
-  each match.
+- `TRANSLATE` normalises a Swahili or Sheng query to English before matching, so
+  the exchange works across the languages people actually write in.
+- `COMPLETE` (`llama3.1-8b`) writes a one-line **next step** for each match —
+  not "why they fit" in the abstract, but the concrete first action, e.g.
+  *"Amina diagnoses the computer lab machines to find the source of the problem."*
 
 The core of the match:
 
 ```sql
-(0.8 * VECTOR_COSINE_SIMILARITY(need.embedding, offer.embedding)
- + 0.2 * IFF(need.category = offer.category, 1, 0)) AS blended_score
+(0.70 * VECTOR_COSINE_SIMILARITY(need.embedding, offer.embedding)
+ + 0.15 * IFF(need.category = offer.category, 1, 0)
+ + 0.15 * IFF(need.location = offer.location, 1, 0)) AS blended_score
 ```
 
-**Why blend two signals.** Pure semantic similarity is strong but occasionally
+**Why blend three signals.** Pure semantic similarity is strong but occasionally
 fooled by shared context words. In my first run, a school's "computer lab
 machines won't switch on" matched a *teacher* instead of the laptop-repair
-volunteer, because both mentioned "primary school." Adding a 20% boost when
-Cortex's `CLASSIFY_TEXT` puts both sides in the same category fixed it, and both
-signals still come from Cortex. That's a design choice worth showing, not hiding.
+volunteer, because both mentioned "primary school." Adding a boost when Cortex's
+`CLASSIFY_TEXT` puts both sides in the same category fixed it, and a small
+same-location boost rewards matches that can actually happen (generosity is
+local: a nurse across the country can't run a clinic day next week). Similarity
+stays dominant at 70%, so no one is matched to the wrong skill; category and
+location only break ties. Both extra signals still come from the data Cortex
+produced. That's a design choice worth showing, not hiding.
 
 **Trust the SQL by reimplementing it.** `app/verify_matching.py` mirrors the
 ranking in plain Python with a bag-of-words stand-in for the embedding. It's
 illuminating: on the hardest pairs (*"machines won't switch on"* vs *"I fix
-laptops"*) bag-of-words scores **0.0**, while Cortex embeddings score **0.75**.
+laptops"*) bag-of-words scores **0.0**, while Cortex embeddings score **0.62**.
 The local mirror proves the ranking math is correct; the gap between the two
 proves why the embedding has to be semantic.
 

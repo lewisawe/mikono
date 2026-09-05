@@ -13,7 +13,8 @@ Built for the DEV Weekend Challenge: Generosity Edition.
 Real needs and real offers almost never use the same words. A school writes
 "the computer lab machines will not switch on." A volunteer writes "I fix broken
 laptops." Keyword search scores that pair **0.0** (see `app/verify_matching.py`).
-Cortex embeddings score it **0.75**. That gap is the whole reason this runs on
+Cortex embeddings score it **0.62** (and **0.73** once the blend adds category and
+location agreement). That gap is the whole reason this runs on
 Snowflake Cortex instead of `LIKE '%...%'`.
 
 ## How it works
@@ -27,16 +28,18 @@ The data flows one way: **offers + needs → Cortex → matches.**
 3. `sql/03_embed.sql` enriches every row with two Cortex calls:
    `EMBED_TEXT_768` (a semantic vector) and `CLASSIFY_TEXT` (a category label).
 4. `sql/04_match.sql` ranks offers against needs with a **blended score**:
-   `0.8 * VECTOR_COSINE_SIMILARITY + 0.2 * category-agreement`. The category
-   boost (also from Cortex) corrects the rare case where shared context words
-   fool raw similarity.
+   `0.70 * VECTOR_COSINE_SIMILARITY + 0.15 * category-agreement + 0.15 * same-location`.
+   Semantic similarity stays dominant, so no one is matched to the wrong skill;
+   the category boost (also from Cortex) and a location signal break ties and
+   reward realistic, actionable matches. The live "type a need/offer" tabs have
+   no location, so they use a 2-signal blend (`0.82 * similarity + 0.18 * category`).
 5. `app/streamlit_app.py` is a Streamlit-in-Snowflake app: a live match board,
    plus two tabs where anyone can type a fresh need or offer and get matched on
    the spot (embed + classify + cosine, computed live in the warehouse).
 
-Four Cortex capabilities, all in-warehouse: `EMBED_TEXT_768`, `CLASSIFY_TEXT`,
-`VECTOR_COSINE_SIMILARITY`, and `COMPLETE` (which writes the plain-language
-"why they fit" line for each match).
+Five Cortex capabilities, all in-warehouse: `EMBED_TEXT_768`, `CLASSIFY_TEXT`,
+`VECTOR_COSINE_SIMILARITY`, `TRANSLATE` (so Swahili offers match English needs),
+and `COMPLETE` (which writes the concrete next-step line for each match).
 
 ## Project layout
 
@@ -45,6 +48,7 @@ sql/
   01_schema.sql            database, warehouse, OFFERS + NEEDS tables
   03_embed.sql             Cortex EMBED_TEXT_768 + CLASSIFY_TEXT enrichment
   04_match.sql             blended semantic match view + demo query
+  05_readonly_role.sql     locked-down read-only role + user for the public demo
 data/
   seed_offers_needs.sql    realistic offers and needs
 app/
@@ -53,6 +57,7 @@ app/
   streamlit_app.py         the app (match board + live matching)
   smoke_test.py            confirms Cortex models are available in your region
   verify_matching.py       pure-Python mirror of the ranking (no Snowflake)
+  verify_live_match.py     runs the live ad-hoc need/offer queries against Snowflake
 ```
 
 ## Run it against your Snowflake account
@@ -114,8 +119,9 @@ is exactly why the real engine uses Cortex embeddings.
 - Region-dependent Cortex models: this account has `EMBED_TEXT_768`
   (`snowflake-arctic-embed-m-v1.5`, 768-dim), `CLASSIFY_TEXT`, and
   `COMPLETE` on `llama3.1-8b`. `smoke_test.py` detects what your region exposes.
-- The blend weights (0.8 / 0.2) are a simple, defensible default. Both signals
-  come from Cortex; tune in `sql/04_match.sql`.
+- The blend weights (0.70 semantic / 0.15 category / 0.15 location) are a simple,
+  defensible default that keeps similarity dominant. All signals come from the
+  data Cortex produced; tune in `sql/04_match.sql`.
 - Seed data is synthetic but realistic (Kenyan SME / community context).
 
 Decision support for connecting willing hands to real needs, not a hiring

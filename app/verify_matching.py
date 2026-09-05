@@ -5,9 +5,12 @@ A pure-Python mirror of the Mikono matching logic in sql/04_match.sql, used ONLY
 to sanity-check the ranking approach locally (no Snowflake, no third-party deps).
 
 The real engine is Snowflake Cortex: EMBED_TEXT_768 produces semantic vectors and
-VECTOR_COSINE_SIMILARITY ranks them, blended with a CLASSIFY_TEXT category boost.
-Here we substitute a trivial bag-of-words vector for the embedding so the SCORING
-STRUCTURE (cosine + 0.2 category boost, top-1 per need) can be checked offline.
+VECTOR_COSINE_SIMILARITY ranks them, blended with a CLASSIFY_TEXT category boost
+(and, in sql/04_match.sql, a location boost). Here we substitute a trivial
+bag-of-words vector for the embedding so the SCORING STRUCTURE (cosine + a 0.2
+category boost, top-1 per need) can be checked offline. The seed data has no
+location column offline, so this mirror uses the simpler 2-signal blend; the
+real view adds same-location as a third signal (0.70/0.15/0.15).
 
 Because bag-of-words has no semantic understanding, some rows here will look weaker
 than in Snowflake — that gap is exactly why Cortex embeddings matter. This script

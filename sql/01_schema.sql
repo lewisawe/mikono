@@ -2,7 +2,7 @@
 -- A generosity exchange for skills & time. Cortex matches free-text OFFERS of
 -- help to free-text NEEDS by semantic meaning, not keyword overlap.
 --
--- Run order: 01_schema.sql -> 02_seed.sql -> 03_embed.sql -> 04_match.sql
+-- Run order: 01_schema.sql -> data/seed_offers_needs.sql -> 03_embed.sql -> 04_match.sql
 --
 -- Requires: a role with the CORTEX_USER database role (for Cortex AI functions).
 -- Cortex must be available in your account region.

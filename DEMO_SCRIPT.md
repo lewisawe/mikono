@@ -39,11 +39,19 @@ Now paste something with no fit, in **I can help**:
 "No cause here needs a lawyer, so it honestly says no strong match instead of
 forcing a bad one. Calibrated, not hype."
 
+## Beat 3b — Bilingual, live (20s)
+Still in **I can help**, paste a Swahili offer:
+> Ninaweza kutengeneza kompyuta na laptop zilizoharibika.
+"This is Swahili — 'I can fix broken computers and laptops.' Cortex TRANSLATE
+normalises it to English, then matches it to the school's dead computer lab.
+Generosity here is bilingual, so the matching is too."
+
 ## Beat 4 — Under the hood (20s)
-"Four Cortex functions do all the work, in SQL: EMBED_TEXT_768 for the vectors,
-VECTOR_COSINE_SIMILARITY to rank, CLASSIFY_TEXT for categories, and COMPLETE
-writes the plain-language reason on each card. No external model, no data leaving
-Snowflake. The app is Streamlit in Snowflake."
+"Five Cortex functions do all the work, in SQL: EMBED_TEXT_768 for the vectors,
+VECTOR_COSINE_SIMILARITY to rank, CLASSIFY_TEXT for categories, TRANSLATE so a
+Swahili offer matches an English need, and COMPLETE writes the concrete next
+step on each card. No external model, no data leaving Snowflake. The app is
+Streamlit in Snowflake."
 
 ## Beat 5 — Close (5s)
 "Mikono. Swahili for hands. Generosity you can give even when you have no money
@@ -51,5 +59,8 @@ to give."
 
 ## Backup facts (if asked)
 - Blend: 70% semantic + 15% category + 15% same-location.
+- Uhuru <-> Amina: keyword overlap 0 words; Cortex raw similarity 0.62,
+  blended score 0.73.
+- Bilingual: TRANSLATE auto-detects source language, normalises to English.
 - verify_matching.py proves keyword overlap scores the hardest pairs at 0.0.
 - Public demo runs on a read-only user, capped by a resource monitor.

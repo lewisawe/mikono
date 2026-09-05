@@ -230,6 +230,28 @@ def live_match(text, table, name_col, cat_col, extra_col, extra_label):
     # (semantic + category) with weights that keep the score on the same
     # 0..1 scale as the board. Parameter binding (?) keeps user text out of
     # the SQL string entirely, so quotes are safe and there is no injection.
+    #
+    # Bilingual support: many offers/needs in this context are written in
+    # Swahili or Sheng. Cortex TRANSLATE normalises the query to English first
+    # (the seed corpus is English), so "Ninaweza kutengeneza kompyuta" matches
+    # the same causes as "I can repair computers". Detected language is shown.
+    en_text = text
+    detected = "en"
+    try:
+        trow = session.sql(
+            "SELECT SNOWFLAKE.CORTEX.TRANSLATE(?, '', 'en') AS en_text",
+            params=[text],
+        ).to_pandas().iloc[0]
+        candidate = (trow["EN_TEXT"] or "").strip()
+        # TRANSLATE with source '' auto-detects; if it changed the text, the
+        # input was not English. Compare case-insensitively, ignore trivial diffs.
+        if candidate and candidate.lower() != text.strip().lower():
+            en_text = candidate
+            detected = "non-en"
+    except Exception:
+        # If TRANSLATE is unavailable in the region, fall back to raw text.
+        en_text = text
+
     df = session.sql(
         f"""
         WITH q AS (
@@ -245,12 +267,16 @@ def live_match(text, table, name_col, cat_col, extra_col, extra_label):
         FROM {table} t, q
         ORDER BY score DESC LIMIT 3
         """,
-        params=[text, text],
+        params=[en_text, en_text],
     ).to_pandas()
 
     if df.empty:
         st.info("Nothing to match against yet.")
         return df
+
+    if detected == "non-en":
+        st.caption(f"Cortex translated your text to English first: "
+                   f"*“{en_text}”*")
 
     inferred = df.iloc[0]["INFERRED"] or "UNCLASSIFIED"
     if inferred.upper() == "UNCLASSIFIED":
@@ -317,7 +343,8 @@ def persist(text, kind, location):
 # ---- I need help --------------------------------------------------------
 with tab_need:
     st.subheader("Describe what your cause needs")
-    st.caption("Plain language. No need to guess keywords — Cortex reads meaning.")
+    st.caption("Plain language, English or Swahili — Cortex reads meaning and "
+               "translates if needed. No need to guess keywords.")
     need_text = st.text_area(
         "What help do you need?",
         placeholder="e.g. Our clinic's record computers keep crashing and we can't afford IT support.",
@@ -364,5 +391,5 @@ with tab_offer:
 
 st.divider()
 st.caption("Built with Snowflake Cortex — EMBED_TEXT_768, CLASSIFY_TEXT, "
-           "VECTOR_COSINE_SIMILARITY, COMPLETE — for the DEV Weekend Challenge: "
-           "Generosity Edition. Mikono is Swahili for hands.")
+           "VECTOR_COSINE_SIMILARITY, TRANSLATE, COMPLETE — for the DEV Weekend "
+           "Challenge: Generosity Edition. Mikono is Swahili for hands.")
