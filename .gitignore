@@ -16,3 +16,8 @@ venv/
 # demo password
 .secrets/demo_password.txt
 .streamlit/secrets.toml
+
+# private prep docs (not for public repo)
+DEMO_SCRIPT.md
+VIDEO_SCRIPT.md
+devToSubmission.md

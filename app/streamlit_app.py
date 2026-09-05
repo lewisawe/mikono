@@ -134,11 +134,45 @@ tab_board, tab_need, tab_offer = st.tabs(
 # ---- Match board: cards, not a table ------------------------------------
 with tab_board:
     st.subheader("Who can help each cause")
-    st.caption("Each match is computed live by Cortex. The two bars show why "
-               "semantic beats keyword search on the same pair.")
+    st.caption("Each match is computed live by Cortex. On every card, the "
+               "**blue bar** is Cortex reading meaning; the **grey bar** is all "
+               "a keyword search would find. The top cards share almost no words "
+               "yet still match — that gap is the whole point.")
     if st.button("Refresh", key="refresh"):
         st.cache_data.clear()
         st.rerun()
+
+    # ---- one Cortex call reasoning over the WHOLE board, not just pairs ----
+    @st.cache_data(show_spinner=False)
+    def insight():
+        # Aggregate the board in SQL, then let COMPLETE narrate the state of
+        # the exchange in one sentence. This shows Cortex reasoning across the
+        # full dataset, the kind of read a coordinator would want at a glance.
+        return session.sql(
+            """
+            WITH b AS (SELECT org_name, volunteer_name, match_score
+                       FROM MATCHES WHERE rank=1),
+            agg AS (
+                SELECT COUNT(*) AS n,
+                       SUM(IFF(match_score >= 0.7, 1, 0)) AS strong,
+                       MAX_BY(org_name || ' with ' || volunteer_name, match_score) AS best_pair,
+                       MIN_BY(org_name, match_score) AS weakest_cause,
+                       ROUND(AVG(match_score), 2) AS avg_score
+                FROM b
+            )
+            SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',
+                'You are a volunteer coordinator. In ONE short sentence, summarise '
+                || 'the state of this matching board for a busy reader. '
+                || n || ' causes matched, ' || strong || ' of them strongly '
+                || '(score >= 0.7), average score ' || avg_score || '. '
+                || 'Strongest pairing: ' || best_pair || '. '
+                || 'The cause with the weakest match is ' || weakest_cause || '. '
+                || 'Be concrete and encouraging, no preamble.') AS summary
+            FROM agg
+            """
+        ).to_pandas().iloc[0]["SUMMARY"]
+
+    st.info(insight())
 
     @st.cache_data(show_spinner="Cortex is matching...")
     def board():
@@ -184,7 +218,10 @@ with tab_board:
             FROM m
             LEFT JOIN kw ON m.need_id = kw.need_id
             LEFT JOIN second s ON m.need_id = s.need_id
-            ORDER BY m.match_score DESC
+            -- Lead with the strongest STORY, not just the top score: a pair
+            -- with zero shared words but a high match is the whole thesis in
+            -- one card, so surface fewest-shared-words first, then by score.
+            ORDER BY COALESCE(kw.shared_words, 0) ASC, m.match_score DESC
             """
         ).to_pandas()
 
