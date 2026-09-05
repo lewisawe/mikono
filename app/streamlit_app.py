@@ -123,10 +123,13 @@ def verdict(score):
 @st.cache_data(show_spinner=False)
 def stats():
     row = session.sql(
-        "SELECT (SELECT COUNT(*) FROM NEEDS), (SELECT COUNT(*) FROM OFFERS), "
-        "(SELECT COUNT(*) FROM MATCHES WHERE rank=1)"
+        "SELECT (SELECT COUNT(*) FROM NEEDS) AS needs_n, "
+        "(SELECT COUNT(*) FROM OFFERS) AS offers_n, "
+        "(SELECT COUNT(*) FROM MATCHES WHERE rank=1) AS matches_n"
     ).to_pandas().iloc[0]
-    return int(row[0]), int(row[1]), int(row[2])
+    # positional access (row.iloc), not row[0]: newer pandas indexes the
+    # Series by column label, so integer keys raise KeyError.
+    return int(row.iloc[0]), int(row.iloc[1]), int(row.iloc[2])
 
 
 needs_n, offers_n, matches_n = stats()
