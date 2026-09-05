@@ -59,7 +59,7 @@ app/
 
 1. Install dependencies:
    ```
-   pip install "snowflake-connector-python[pandas]" cryptography
+   pip install "snowflake-connector-python[pandas]" snowflake-snowpark-python cryptography
    ```
 2. Provide credentials one of two ways:
    - **Key-pair** (used here): put the private key at
@@ -75,11 +75,29 @@ app/
    ```
    python app/run_pipeline.py
    ```
-5. Deploy the app:
+5. Deploy the Streamlit-in-Snowflake app:
    ```
    python app/deploy_streamlit.py
    ```
-   Then open Snowsight → Projects → Streamlit → MIKONO_APP.
+   Then open Snowsight -> Projects -> Streamlit -> MIKONO_APP.
+
+## Public demo (Streamlit Community Cloud)
+
+A Streamlit-in-Snowflake app lives inside your account, so judges can't open it.
+To publish a clickable demo:
+
+1. Create a locked-down read-only user (read + Cortex only, capped warehouse):
+   ```
+   -- run sql/05_readonly_role.sql as ACCOUNTADMIN, then set a password:
+   ALTER USER MIKONO_DEMO SET PASSWORD = '<strong password>';
+   ```
+2. Deploy `app/streamlit_app.py` on Streamlit Community Cloud, and paste the
+   block from `.streamlit/secrets.toml.example` into the app's Secrets, using the
+   `MIKONO_DEMO` / `MIKONO_READONLY` credentials.
+
+The app detects its environment: inside Snowflake it uses the active Snowpark
+session (writes enabled); on Community Cloud it connects as the read-only user
+and hides the "post to the board" actions.
 
 ## Verify the logic offline (no Snowflake)
 
