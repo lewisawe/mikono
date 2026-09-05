@@ -12,6 +12,15 @@ import os
 import streamlit as st
 
 
+def do_rerun():
+    """Rerun the script across Streamlit versions. Streamlit in Snowflake may
+    ship an older Streamlit where st.rerun() does not exist yet; fall back to
+    the experimental name, and no-op if neither is present."""
+    fn = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if fn:
+        fn()
+
+
 def get_session():
     """Active Snowpark session in SiS, else build one from secrets/env.
     Returns (session, can_write). The public demo user is read-only, so we
@@ -140,7 +149,7 @@ with tab_board:
                "yet still match — that gap is the whole point.")
     if st.button("Refresh", key="refresh"):
         st.cache_data.clear()
-        st.rerun()
+        do_rerun()
 
     # ---- one Cortex call reasoning over the WHOLE board, not just pairs ----
     @st.cache_data(show_spinner=False)
@@ -426,7 +435,8 @@ with tab_offer:
                 st.success("Posted. It now counts on the board above.")
 
 
-st.divider()
+st.markdown("<hr style='border:none;border-top:1px solid #e6e8ec;margin:8px 0;'>",
+            unsafe_allow_html=True)
 st.caption("Built with Snowflake Cortex — EMBED_TEXT_768, CLASSIFY_TEXT, "
            "VECTOR_COSINE_SIMILARITY, TRANSLATE, COMPLETE — for the DEV Weekend "
            "Challenge: Generosity Edition. Mikono is Swahili for hands.")
