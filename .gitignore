@@ -1,0 +1,18 @@
+# secrets / credentials
+.secrets/
+*.p8
+*.pub
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os
+.DS_Store
+
+# demo password
+.secrets/demo_password.txt
+.streamlit/secrets.toml
