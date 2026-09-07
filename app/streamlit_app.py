@@ -1,4 +1,4 @@
-"""Mikono — Streamlit app for the DEV Weekend Challenge: Generosity Edition.
+"""Mikono. Streamlit app for the DEV Weekend Challenge: Generosity Edition.
 
 A generosity exchange for skills & time. Snowflake Cortex matches free-text
 offers of help to free-text needs by MEANING, not keywords.
@@ -93,7 +93,7 @@ st.markdown(
 
 st.title("Mikono")
 st.markdown(
-    "<div class='hero'>A generosity exchange for skills and time — not money, "
+    "<div class='hero'>A generosity exchange for skills and time, not money, "
     "<b>hands</b>. Snowflake Cortex matches offers of help to real needs by "
     "meaning, so <i>“I fix broken laptops”</i> finds <i>“our lab machines won’t "
     "switch on”</i> even with no shared words.</div>",
@@ -149,7 +149,7 @@ with tab_board:
     st.caption("Each match is computed live by Cortex. On every card, the "
                "**blue bar** is Cortex reading meaning; the **grey bar** is all "
                "a keyword search would find. The top cards share almost no words "
-               "yet still match — that gap is the whole point.")
+               "yet still match, and that gap is the whole point.")
     if st.button("Refresh", key="refresh"):
         st.cache_data.clear()
         do_rerun()
@@ -337,7 +337,7 @@ def live_match(text, table, name_col, cat_col, extra_col, extra_label):
     top = float(df.iloc[0]["SCORE"])
     if top < 0.55:
         st.warning(
-            "No strong match yet. That's honest — it means no one here offers "
+            "No strong match yet. That's honest: it means no one here offers "
             "quite what's needed. Here's the closest, in case it helps:"
         )
     for _, r in df.iterrows():
@@ -392,7 +392,7 @@ def persist(text, kind, location):
 # ---- I need help --------------------------------------------------------
 with tab_need:
     st.subheader("Describe what your cause needs")
-    st.caption("Plain language, English or Swahili — Cortex reads meaning and "
+    st.caption("Plain language, English or Swahili. Cortex reads meaning and "
                "translates if needed. No need to guess keywords.")
     need_text = st.text_area(
         "What help do you need?",
@@ -440,6 +440,6 @@ with tab_offer:
 
 st.markdown("<hr style='border:none;border-top:1px solid #e6e8ec;margin:8px 0;'>",
             unsafe_allow_html=True)
-st.caption("Built with Snowflake Cortex — EMBED_TEXT_768, CLASSIFY_TEXT, "
-           "VECTOR_COSINE_SIMILARITY, TRANSLATE, COMPLETE — for the DEV Weekend "
+st.caption("Built with Snowflake Cortex: EMBED_TEXT_768, CLASSIFY_TEXT, "
+           "VECTOR_COSINE_SIMILARITY, TRANSLATE, COMPLETE, for the DEV Weekend "
            "Challenge: Generosity Edition. Mikono is Swahili for hands.")
